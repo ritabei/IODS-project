@@ -3,4 +3,177 @@
 ```{r}
 date()
 ```
+This chapter describes an application of regression model.
+
+### Data
+
+The data, which is analyzed in this chapter, is a subset of *International survey of Approaches to Learning* data set taken from [here](http://www.helsinki.fi/~kvehkala/JYTmooc/JYTOPKYS3-data.txt). Variable descriptions and other meta data of this data set can be found following [this link](https://www.mv.helsinki.fi/home/kvehkala/JYTmooc/JYTOPKYS3-meta.txt).
+
+The [subset](https://github.com/ritabei/IODS-project/blob/master/data/learning2014.csv), which is analyzed in this chapter, can be found in my [github page](https://github.com/ritabei/IODS-project/tree/master/data) along with [R code](https://github.com/ritabei/IODS-project/blob/master/data/create_learning2014.R) of its derivation.
+
+#### Structure of the data
+
+```{r}
+# Reading the data file
+learning2014 <- read.table("data/learning2014.csv", sep=",", header=TRUE)
+
+#Looking at the dimensions and structure of the data
+dim(learning2014)
+str(learning2014)
+
+```
+Data consists of 166 observations of 7 variables. These variables are:
+
+ 1. *gender* (character type variable);
+ 2. *age* (integer type variable);
+ 3. *attitude* (integer type variable describing students attitude towards statistics);
+ 4. *deep* (numeric type variable describing questions related to deep learning);
+ 5. *stra* (numeric type variable describing questions related to strategic learning);
+ 6. *surf* (numeric type variable describing questions related to surface learning);
+ 7. *points* (integer type variable describing exam points).
+
+#### Graphical overview and summary of the data
+```{r}
+library(ggplot2)
+```
+
+```{r}
+# Summary of the variables
+summary(learning2014)
+```
+The summary table shows minimum, maximum, mean, median, 1st and 3rd quantile values of each numeric variable. The age of respondents is between 17 and 55 years with the median of 22 years. Exam points vary from 7 to 33 with the median of 22 points. Attitude and learning strategy variables all averages around 3.
+
+
+```{r fig1, fig.height = 2, fig.width = 2}
+# Making a table of how many responses are from male and how many from female
+table_gender <- table(learning2014$gender)
+
+# Visualizing result with a simple barplot
+
+ggplot(data=as.data.frame(table_gender), aes(x=Var1,y=Freq)) +
+  geom_bar(stat="identity", fill="darkblue")+ theme_minimal()+
+  labs(x = "Gender", y = 'Count')+ ggtitle("Students' gender")
+
+
+
+```
+The number of female respondents is double the size of male respondents.
+
+```{r, fig.height = 4, fig.width = 4 }
+# Ploting a histogram of age variable
+ggplot(learning2014, aes(x=age)) +theme_minimal() + geom_histogram(color="darkblue", fill="lightblue", binwidth=5) + ggtitle("Histogram of students' age")
+```
+Most of the respondents are around age 20.
+
+```{r, fig.height = 4, fig.width = 4 }
+# Ploting a histogram of attitude variable
+ggplot(learning2014, aes(x=attitude)) +theme_minimal() + geom_histogram(color="darkblue", fill="lightblue", binwidth=0.5) + ggtitle("Histogram of students' attitude")+ stat_function(fun = function(x) dnorm(x, mean = mean(learning2014$attitude), sd = sd(learning2014$attitude)) * 0.5 * nrow(learning2014))
+```
+Students attitude seems to resemble a normal distribution.
+
+
+```{r}
+#Vizualising attitude vs points data points coloring them by gender and adding regression lines
+ggplot(learning2014, aes(x = attitude, y = points, col = gender))+ geom_point()+geom_smooth(method = "lm")+ ggtitle("Student's attitude versus exam points") +theme_minimal()
+
+```
+
+From the last plot, it can be sen that with better attitude, exam points tend to increase.
+
+
+```{r}
+# Drawing a scatter plot matrix of the variables in learning2014.
+# [-1] excludes the first column (gender)
+pairs(learning2014[-1])
+
+```
+
+
+Pairwise scatter plots of the variables does not show very clear linear relationships. The most noticeable linear relationship seems to be between the exam points and the attitude as in the previous plot.
+
+
+### Fitting the regression model
+
+Linear regression is an approach for modeling the relationship between a dependent variable $y$ and one or more explanatory variables $X$.
+
+
+I chose attitude, deep and strategic learning variables as explanatory variables for the dependent *points* variable.
+In this case the model is of a form:
+
+$points = x_0 + x_1*attitude + x_2 * deep + x_3* stra + e,$ 
+here $e$ is an un-observable random variable which is assumed to add noise to the observations.
+
+In the below code linear model is fitted for estimating the coefficients $x_0, x_1, x_2$.
+
+
+```{r}
+# Fitting a linear model
+my_model <- lm(points ~ attitude + deep + stra, data = learning2014)
+
+# Printing out a summary of the model
+summary(my_model)
+```
+
+When the p-value is less than the chosen significance level, we can reject the null hypothesis that the coefficient of model's variable is equal to 0. It means that the variable adds significant benefit to the model.
+In this model above, only *intercept* and *attitude* has p-values smaller than significance level 0.05.
+Therefore, I have removed *deep* and *stra* variables from the model and build the second model including only *attitude* variable, which has significant relationship with the target variable.
+
+```{r}
+# Fitting second linear model
+my_model2 <- lm(points ~ attitude, data = learning2014)
+
+# Printing out a summary of the model
+summary(my_model2)
+```
+
+```{r}
+#Plotting the regression line by the model
+ggplot(learning2014, aes(x = attitude, y = points)) + 
+  geom_point() +
+  stat_smooth(method = "lm", col = "red") +ggtitle("Regression model fitted line") +theme_minimal()
+```
+
+
+
+The resulting model has such form
+
+$points = 11.64 + 3.53*attitude$.
+
+The attitude coefficient in the regression equation is 3.53. This coefficient represents the mean increase of exam points for every additional unit in attitude measurement. That is, if the *attitude* value increases by 1, then exam points increase by 3.53.
+
+R-squared is a measure of how good is the fit of linear regression models. It indicates the percentage of the variance in the dependent variable that the independent variables explain collectively.
+In this case independent variable is only *attitude* and based on R-squared value of summary table, it explains 19% of variance in the *points* variable. In the case when *deep* and *stra* variables are included, the value of R-squared is slightly bigger and shows that 21% of variability in *points* variable is explained.
+
+
+
+
+### Diagnostic plots
+
+How well the model describes the phenomenon depends on how well the model assumptions fit reality.
+In linear regression model the main assumption is linearity and the errors are assumed to be normally distributed. Analyzing the residuals of the model provides a method to explore the validity of the model assumptions. A good way of such analysis is diagnostic plots which let to explore normal distribution of errors, constant variation of errors and leverage of observations.
+
+
+
+```{r}
+# Drawing the diagnostic plots.
+par(mfrow = c(2,2))
+plot(my_model2, which = c(1,2,5))
+
+```
+
+
+The first plot of residuals vs fitted values show no visible pattern and thus the assumption, that the variance of errors is constant, is not violated.
+
+The second Normal QQ-plot shows reasonable fit with the line which confirms that distribution of errors is similar to normal distribution.
+
+The third Residuals vs Leverage plot show how much impact a singe observation has on a model. It doesn't look like any of observation would have an unusually high impact.
+
+
+
+###Conclusion
+
+Even though there seems to be a significant linear relationship between attitude and exam points, the attitude variable explains only 19% of variability of exam points. Therefore, model does not seem like a very good fit.
+
+
+
 
