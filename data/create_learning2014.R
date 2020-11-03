@@ -57,7 +57,7 @@ dim(learning2014)
 getwd()
 
 # Saving the analysis dataset to the ‘data’ folder
-write.csv(learning2014, file = 'data/learning2014.csv')
+write.csv(learning2014, file = 'data/learning2014.csv', row.names = F)
 
 # Reading the saved data file
 l14 <- read.table('data/learning2014.csv', sep =',', header=T)
