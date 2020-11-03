@@ -13,7 +13,7 @@ dim(lrn14)
 
 
 # Create column "attitude" by scaling the column "Attitude"
-lrn14$attitude <- lrn14$Attitude / 10
+lrn14$Attitude <- lrn14$Attitude / 10
 
 
 # Access the dplyr library
