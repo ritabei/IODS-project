@@ -12,6 +12,7 @@ The data, which is analyzed in this chapter, is a subset of *International surve
 The [subset](https://github.com/ritabei/IODS-project/blob/master/data/learning2014.csv), which is analyzed in this chapter, can be found in my [github page](https://github.com/ritabei/IODS-project/tree/master/data) along with [R code](https://github.com/ritabei/IODS-project/blob/master/data/create_learning2014.R) of its derivation.
 
 #### Structure of the data
+The first task is to read the data and check its structure. This is done using R code below.
 
 ```{r}
 # Reading the data file
@@ -33,16 +34,23 @@ Data consists of 166 observations of 7 variables. These variables are:
  7. *points* (integer type variable describing exam points).
 
 #### Graphical overview and summary of the data
+
+The second task is to show a graphical overview of the data and show summaries of the variables.
+
+For drawing plots ggplot2 library will be used.
 ```{r}
 library(ggplot2)
 ```
 
+
+Summary of the variables can be looked up using summary function below.
 ```{r}
-# Summary of the variables
+# Looking at summary statistics of the variables
 summary(learning2014)
 ```
 The summary table shows minimum, maximum, mean, median, 1st and 3rd quantile values of each numeric variable. The age of respondents is between 17 and 55 years with the median of 22 years. Exam points vary from 7 to 33 with the median of 22 points. Attitude and learning strategy variables all averages around 3.
 
+In the next step, various plots are used for visualizing the variables and their relationships.
 
 ```{r fig1, fig.height = 2, fig.width = 2}
 # Making a table of how many responses are from male and how many from female
@@ -94,6 +102,8 @@ Pairwise scatter plots of the variables does not show very clear linear relation
 
 ### Fitting the regression model
 
+The third and fourth tasks are to fit the regression model and explain it.
+
 Linear regression is an approach for modeling the relationship between a dependent variable $y$ and one or more explanatory variables $X$.
 
 
@@ -126,13 +136,15 @@ my_model2 <- lm(points ~ attitude, data = learning2014)
 summary(my_model2)
 ```
 
+
+Below is a code for a fitted line plot which shows a scatterplot of the data with a regression line representing the regression equation.
+
 ```{r}
 #Plotting the regression line by the model
 ggplot(learning2014, aes(x = attitude, y = points)) + 
   geom_point() +
-  stat_smooth(method = "lm", col = "red") +ggtitle("Regression model fitted line") +theme_minimal()
+  stat_smooth(method = "lm", col = "red") +ggtitle("Fitted line plot") +theme_minimal()
 ```
-
 
 
 The resulting model has such form
@@ -149,10 +161,12 @@ In this case independent variable is only *attitude* and based on R-squared valu
 
 ### Diagnostic plots
 
+The last task is to produce diagnostic plots.
+
 How well the model describes the phenomenon depends on how well the model assumptions fit reality.
 In linear regression model the main assumption is linearity and the errors are assumed to be normally distributed. Analyzing the residuals of the model provides a method to explore the validity of the model assumptions. A good way of such analysis is diagnostic plots which let to explore normal distribution of errors, constant variation of errors and leverage of observations.
 
-
+Below is the code for diagnostic plots.
 
 ```{r}
 # Drawing the diagnostic plots.
@@ -170,9 +184,9 @@ The third Residuals vs Leverage plot show how much impact a singe observation ha
 
 
 
-###Conclusion
+### Conclusion
 
-Even though there seems to be a significant linear relationship between attitude and exam points, the attitude variable explains only 19% of variability of exam points. Therefore, model does not seem like a very good fit.
+Even though there seems to be a significant linear relationship between attitude and exam points, the attitude variable explains only 19% of variability of exam points. Therefore, the model does not seem like a very good fit for the data.
 
 
 
