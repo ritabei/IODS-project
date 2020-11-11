@@ -3,3 +3,6 @@
 ```{r}
 date()
 ```
+
+This chapter describes an application of logistic regression model.
+
