@@ -6,3 +6,230 @@ date()
 
 This chapter describes an application of logistic regression model.
 
+## Data
+
+The data of this chapter is student alcohol consumption data from [UCI Machine Learning Repository](https://archive.ics.uci.edu/ml/machine-learning-databases/00320/).
+It has been pre-processed using [the code](https://github.com/ritabei/IODS-project/blob/master/data/create_alc.R) in my GitHub repository.
+Data set consists of 35 variables and 370 observations. Information about the variables can be found [here](https://archive.ics.uci.edu/ml/datasets/Student+Performance). Additional *alc_use* variable was defined by taking the average of weekday and weekend alcohol use. Additional *high_use* variable was defined by assigning *TRUE* value if *alc_use* is higher than 2 and *FALSE* value otherwise.
+
+```{r}
+# Reading the data
+alc <- read.csv('data/alc.csv')
+
+# Printing out the names of the variables in the data 
+names(alc)
+
+# Looking at the dimensions of the data
+dim(alc)
+# Looking at the structure of the data
+str(alc)
+```
+## Interesting variables and hypothesis 
+
+I think that these four variables could be related with alcohol consumption:
+
+1. *sex*: males might have tendency to drink more;
+2. *goout*: students who go out often can go for drinks with friends;
+3. *famrel*: bad family relations could be a cause of drinking;
+4. *studytime*: maybe more motivated students who spend more time studying are less likely to engage in drinking.
+
+## Distributions of the chosen variables 
+
+```{r}
+# Accessing the tidyverse libraries dplyr and ggplot2
+library(dplyr) 
+library(ggplot2)
+```
+
+Let's look at the distribution of *sex* variable.
+
+```{r}
+#Producing summary statistics of alcohol use
+alc %>% group_by(sex, high_use) %>% summarise(count = n(),mean_alc_use = mean(alc_use))
+```
+It seems that more males have high alcohol consumption compared to female. My initial hypothesis was right.
+
+
+Let's look at distribution of *goout* variable.
+
+```{r}
+# Initializing a plot of alc_use and going out
+g2 <- ggplot(alc, aes(y = alc_use, x = factor(goout), col = sex))
+
+# define the plot as a boxplot and draw it
+g2 + geom_boxplot() + ggtitle("Student tendency to go out by alcohol consumption and sex") + theme_classic() + xlab('Going out') + ylab('Alcohol use')
+
+```
+
+
+Seems that students who tend to go out more, tend to drink more alcohol. My initial hypothesis was correct. Interestingly, for males, the median of alcohol consumption increases drastically if they go out with  friends a lot. For females, median of alcohol consumption does not change between going out moderate amount of times and high amount of times.
+
+
+Let's look at *famrel* variable.
+
+```{r}
+# Initializing a plot of alc_use and family relationships
+g2 <- ggplot(alc, aes(x = factor(famrel), y = alc_use, col = sex))
+
+# define the plot as a boxplot and draw it
+g2 + geom_boxplot() + ggtitle("Student's family relationships by alcohol consumption and sex") + xlab('Family relationships') + ylab('Alcohol consumption') + theme_light()
+```
+
+
+My initial hypothesis that family relationships are related to alcohol consumption is correct. It is clearly visible for males that the worse relationship is in family, the higher is alcohol consumption. For females, the median of alcohol consumption is similar except when family relationships are very good. In that case, alcohol consumption drops.
+
+
+
+
+
+
+
+
+Let's look at *studytime* variable.
+
+
+```{r}
+# Initializing a plot of alc_use and study time
+g2 <- ggplot(alc, aes(x = factor(studytime), y = alc_use, col = sex))
+
+# define the plot as a boxplot and draw it
+g2 + geom_boxplot() + ggtitle("Student's study time by alcohol consumption and sex") + theme_dark() + xlab('Study time') + ylab('Alcohol use')
+```
+
+
+My initial hypothesis was correct. For both males and females, alcohol consumption drops when study time increases.
+
+
+## Logistic regression model
+
+In this section logistic regression model will be fitted to explore the relationship between my chosen variables and the binary high/low alcohol consumption variable as the target variable. 
+
+```{R}
+# Subsetting initial data frame to include only chosen variables and converting them to factors
+alc_subset <- alc %>% select(high_use,sex,goout,famrel,studytime) %>% mutate(high_use = factor(high_use),
+sex = factor(sex),
+goout = factor(goout),
+famrel = factor(famrel),
+studytime = factor(studytime))
+str(alc_subset)
+```
+
+```{R}
+# Finding the model with glm()
+m <- glm(high_use ~ sex + goout + famrel + studytime, data = alc_subset, family = "binomial")
+
+# Printing out a summary of the model
+summary(m)
+
+```
+As all variables in this model are factors, each of the variables are converted into so called dummy variables. The summary of the model shows that only all of *famrel* [dummy coded](https://stats.stackexchange.com/questions/60817/significance-of-categorical-predictor-in-logistic-regression) variables do not have statistically significant relationship with high alcohol consumption. For other variables, at least one of dummy variable has a statistically significant relationship. 
+
+
+```{R}
+# Printing out the coefficients of the model
+coef(m)
+
+```
+The positive *sexM* coefficient mean that probability of high alcohol consumption increases by 0.87 when the person is a male. The positive *goout2*, *goout3*, *goout4* and *goout5* coefficients mean that the probability of high alcohol increases based on how often a person goes out by 0.24, 0.59, 2.03 and 2.47 accordingly. Depending on the family relationships probability of high alcohol consumption decreases when relationships are well and increases otherwise. The more study time increases, the more probability of high alcohol consumption decreases.
+It seems that the model confirms my previous hypothesis.
+
+
+
+
+
+
+
+
+
+```{R}
+# Computing odds ratios (OR)
+OR <- coef(m) %>% exp
+
+# Computing confidence intervals (CI)
+CI <- confint(m) %>% exp
+
+# Printing out the odds ratios with their confidence intervals
+cbind(OR, CI)
+
+
+```
+*sexM*, all *goout* variables and *famrel2* as well as *famrel3* variables have OR > 1 which means greater odds of association with high alcohol consumption.
+
+## Predictive power of the model
+
+As *famrel* variable does not show statistical significance, let's exclude it from the model. 
+
+```{R}
+
+# Fitting the model with glm()
+m <- glm(high_use ~ sex + goout + studytime, data = alc_subset, family = "binomial")
+
+# predict() the probability of high_use
+probabilities <- predict(m, type = "response")
+
+# Adding the predicted probabilities to 'alc_subset'
+alc_subset <- mutate(alc_subset, probability = probabilities)
+
+# Using the probabilities to make a prediction of high_use
+alc_subset <- mutate(alc_subset, prediction = probability > 0.5)
+
+# Looking at the last ten original classes, predicted probabilities, and class predictions
+tail(alc_subset, 10)
+
+# Tabulating the target variable versus the predictions
+table(high_use = alc_subset$high_use, prediction = alc_subset$prediction)
+```
+Table of target variable versus the predictions show that most of students with low alcohol consumption are predicted correctly. Approximately half of students with high alcohol consumption are predicted correctly and half incorrectly.
+
+```{R}
+# Initializing a plot of 'high_use' versus 'probability' in 'alc_subset'
+g <- ggplot(alc_subset, aes(x = probability, y = high_use, col = prediction))
+
+# Define the geom as points and draw the plot
+g + geom_point()
+```
+
+The plot illustrates that many of the students with high alcohol consumption are not predicted correctly.
+
+
+```{R}
+# Define a loss function (average prediction error)
+loss_func <- function(class, prob) {
+  n_wrong <- abs(class - prob) > 0.5
+  mean(n_wrong)
+}
+
+# Calling loss_func to compute the average number of wrong predictions in the (training) data
+# alc_subset$high_use is a factor, therefore it needs to be converted into numeric vector.
+# 1 is subracted because as.numeric() function converts True values to 2 and False values to 1
+loss_func(class = as.numeric(alc_subset$high_use)-1,prob = alc_subset$probability)
+
+
+
+```
+Now let's look if model predicts better than random guessing.
+
+```{R}
+# Instead of probabilities predicted by the model, random sample of 0's and 1's is generated by sample() function
+loss_func(class = as.numeric(alc_subset$high_use)-1,prob = sample(0:1, nrow(alc_subset), replace=T))
+
+
+```
+
+Logistic regression model has an error of 20% whereas random guessing gives error of 50% which means that logistic regression model is reasonably informative.
+
+## Cross-validation
+Let's perform 10 fold cross validation.
+
+```{R}
+# K-fold cross-validation
+library(boot)
+cv <- cv.glm(data = alc_subset, cost = loss_func, glmfit = m, K = 10)
+
+# Average number of wrong predictions in the cross validation
+cv$delta[1]
+
+
+```
+
+My model has a slightly smaller prediction error (0.23) using 10-fold cross-validation compared to the model introduced in DataCamp (which had about 0.26 error). 
