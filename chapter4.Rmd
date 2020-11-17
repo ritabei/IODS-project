@@ -1,0 +1,331 @@
+# Clustering and classification
+
+```{r}
+date()
+```
+
+## Data
+
+In this chapter the Boston data from the *MASS* package is analyzed.
+
+
+
+Let's load and explore the data.
+
+```{r}
+# Accessing the MASS package
+library(MASS)
+
+# Loading the Boston data
+data("Boston")
+
+
+# Looking at the structure of the dataset
+str(Boston)
+dim (Boston)
+```
+
+This dataframe contains 506 observation of 14 different variables. These variables are:
+
+*crim*: per capita crime rate by town.
+
+*zn*: proportion of residential land zoned for lots over 25,000 sq.ft.
+
+*indus*: proportion of non-retail business acres per town.
+
+*chas*: Charles River dummy variable (= 1 if tract bounds river; 0 otherwise).
+
+*nox*: nitrogen oxides concentration (parts per 10 million).
+
+*rm*: average number of rooms per dwelling.
+
+*age*: proportion of owner-occupied units built prior to 1940.
+
+*dis*: weighted mean of distances to five Boston employment centres.
+
+*rad*: index of accessibility to radial highways.
+
+*tax*: full-value property-tax rate per \$10,000.
+
+*ptratio*: pupil-teacher ratio by town.
+
+*black*: 1000(Bk - 0.63)^2 where Bk is the proportion of blacks by town.
+
+*medv*: median value of owner-occupied homes in \$1000s.
+
+*lstat*: lower status of the population (percent).
+
+### Graphical overview of the data
+
+Let's look at the summaries of the variables in the data. 
+```{r}
+# Looking at summary statistics
+summary(Boston)
+
+```
+All of the variables have different scales. For example, *rm* varies from 3.5 to 8.7 and *tax* can vary between 187 to 711. This show that data will need to be standardized when applying clustering as features in the data set have large differences in their ranges. Features with higher ranges would have bigger influence on clustering compared to features with smaller ranges as clustering models are distance based algorithms.
+
+
+
+Let's look at the pairwise relationships between the variables.
+```{r}
+# Plotting a matrix of the variables
+pairs(Boston)
+
+```
+There are some visible linear relationships between the variables. For example, when *medv* (median value of owner-occupied homes in \$1000s) increases *rm* (average number of rooms per dwelling)  seem to increase as well.
+
+
+Let's look at the correlations.
+
+
+```{r}
+
+# Accessing corrplot and tidyr libraries 
+library(corrplot)
+library(tidyr)
+# Loading package for color palletes
+library(wesanderson)
+
+# Calculating the correlation matrix and rounding it
+cor_matrix <- cor(Boston) %>% round(digits = 2)
+
+# Printing the correlation matrix
+cor_matrix
+
+# Visualizing the correlation matrix
+corrplot.mixed(cor_matrix, upper.col = wes_palette("Rushmore1", 100, type = "continuous"), lower.col = wes_palette("Rushmore1", 100, type = "continuous"), tl.col= 'black', number.cex = .45, tl.pos = "d", tl.cex = 0.6 )
+```
+
+The highest positive correlation <span style="color: red;">(0.91)</span> is between *tax* and *rad* variables. The highest negative correlation <span style="color: #ECD590;">(-0.77)</span> is between *dis* and *age* variables.
+
+
+
+## Standardizing the data
+
+Let's standardize the data by subtracting the column means from the corresponding columns and dividing the difference with standard deviation.
+
+
+```{r}
+
+# Scaling the variables
+boston_scaled <- scale(Boston)
+
+# Printing summaries of the scaled variables
+summary(boston_scaled)
+
+
+```
+
+
+
+As initial data is a matrix, it needs to be changed into a data frame object.
+
+```{r}
+# Change the object to data frame
+boston_scaled <- as.data.frame(boston_scaled)
+class(boston_scaled)
+
+```
+
+Let's create a categorical variable of the crime rate in the Boston dataset.
+
+```{r}
+# Using quantiles as break points 
+break_points <- quantile(boston_scaled$crim)
+break_points
+
+# Creating a categorical variable 'crime'
+crime <- cut(boston_scaled$crim, breaks = break_points, include.lowest = TRUE, labels = c("low", "med_low", "med_high", "high"))
+
+```
+
+Let's drop the old crime rate variable from the dataset.
+
+
+```{r}
+# Removing original crim from the dataset
+boston_scaled <- dplyr::select(boston_scaled, -crim)
+
+# Adding the new categorical value to scaled data
+boston_scaled <- data.frame(boston_scaled, crime)
+
+```
+
+
+
+Let's divide data into train and test sets.
+
+```{r}
+# Setting the number of rows in the Boston dataset 
+n <- nrow(boston_scaled)
+
+# Choosing randomly 80% of the rows
+set.seed(123)
+ind <- sample(n,  size = n * 0.8)
+
+# Creating a train set
+
+train <- boston_scaled[ind,]
+
+# Creating a test set 
+test <- boston_scaled[-ind,]
+
+```
+
+
+## Fitting the linear discriminant analysis
+
+
+In this section LDA will be fitted using the categorical crime rate as the target variable and all the other variables in the dataset as predictor variables. 
+
+
+```{r}
+# Fitting LDA
+lda.fit <- lda(crime ~ ., data = train)
+
+# Printing the lda.fit object
+lda.fit
+
+# The function for lda biplot arrows
+lda.arrows <- function(x, myscale = 1, arrow_heads = 0.1, color = "orange", tex = 0.75, choices = c(1,2)){
+  heads <- coef(x)
+  arrows(x0 = 0, y0 = 0, 
+         x1 = myscale * heads[,choices[1]], 
+         y1 = myscale * heads[,choices[2]], col=color, length = arrow_heads)
+  text(myscale * heads[,choices], labels = row.names(heads), 
+       cex = tex, col=color, pos=3)
+}
+
+# Setting target classes as numeric
+classes <- as.numeric(train$crime)
+
+# Plotting the lda results
+plot(lda.fit, dimen = 2, col = classes, pch = classes)
+lda.arrows(lda.fit, myscale = 1)
+
+```
+
+From LDA bi-plot it can be seen that *rad* variable is the most infuential linear separator for discriminating high crime rates. Although, some points of medium high rates are mixed in.
+
+
+## Making predictions with LDA model
+
+Let's save the crime categories from the test set and then remove it from the test dataset.
+
+```{r}
+# Saving the correct classes from test data
+correct_classes <- test$crime
+
+# Removing the crime variable from test data
+test <- dplyr::select(test, -crime)
+```
+
+
+NOw let's make predictions with LDA model on the test set and cross tabulate the results.
+
+```{r}
+# Predicting the classes with test data
+lda.pred <- predict(lda.fit, newdata = test)
+
+# Cross tabulating the results
+table(correct = correct_classes, predicted = lda.pred$class)
+
+```
+It seems that the model best predicts high crime rates. All 12 predictions predicting high crime rate were correct. It is hard for the model to separate between low, medium low and medium high crime rates.
+
+
+
+## Clustering
+
+Let's reload and scale Boston data set.
+
+```{r}
+# Scaling the variables in Boston data set
+boston_scaled2 <- scale(Boston)
+```
+
+
+Let's calculate the Euclidean distances between the variables.
+
+```{r}
+# Distances between the observations
+dist_eu <- dist(Boston)
+```
+
+Let's run k-means algorithm on the dataset choosing 2 clusters.
+
+```{r}
+# k-means clustering
+km <-kmeans(Boston, centers = 2)
+
+# Plotting the Boston dataset with clusters
+pairs(Boston, col = km$cluster)
+
+
+```
+
+
+Let's investigate what is the optimal number of clusters and run the algorithm again.
+
+
+```{r}
+library(ggplot2)
+# Setting seed so that initial clusters would be assinged every time the same
+set.seed(123)
+
+# Determining the number of clusters
+k_max <- 20
+
+# Calculate the total within sum of squares
+twcss <- sapply(1:k_max, function(k){kmeans(Boston, k)$tot.withinss})
+
+# Visualizing the results
+qplot(x = 1:k_max, y = twcss, geom = 'line')
+
+```
+
+Based on first sharp drop it seems that optimal number of clusters is as chosen initially. That is 2 clusters.
+
+
+Let's plot the clusters in the data.
+
+
+```{r}
+library(GGally)
+
+ggpairs(Boston, mapping = aes(color = factor(km$cluster)))
+
+
+```
+
+
+From the last plot it is visible that one of the clusters contains most high crime points and the other all the rest points as high crime points were well separated with LDA based on *rad* variable.
+
+## Projection of the data points (super bonus)
+
+```{r}
+
+model_predictors <- dplyr::select(train, -crime)
+# Checking the dimensions
+dim(model_predictors)
+dim(lda.fit$scaling)
+
+# Matrix multiplication
+matrix_product <- as.matrix(model_predictors) %*% lda.fit$scaling
+matrix_product <- as.data.frame(matrix_product)
+
+#install.packages('plotly')
+library(plotly)
+# Plotting with color argument equal to crime classes
+plot_ly(x = matrix_product$LD1, y = matrix_product$LD2, z = matrix_product$LD3, type= 'scatter3d', mode='markers', color = train$crime)
+
+
+# Plotting with color argument equal to kmeans clusters of the observations in train set.
+plot_ly(x = matrix_product$LD1, y = matrix_product$LD2, z = matrix_product$LD3, type= 'scatter3d', mode='markers', color = factor(km$cluster[ind]))
+
+```
+
+
+These two plots differ in a way that there are only two clusters in the second plot and 4 different classes in the first plot. The similarly here is that high crime points from the first plot are assigned to the first cluster.
+
