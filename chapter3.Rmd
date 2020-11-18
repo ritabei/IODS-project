@@ -130,7 +130,7 @@ As all variables in this model are factors, each of the variables are converted 
 coef(m)
 
 ```
-The positive *sexM* coefficient mean that probability of high alcohol consumption increases by 0.87 when the person is a male. The positive *goout2*, *goout3*, *goout4* and *goout5* coefficients mean that the probability of high alcohol increases based on how often a person goes out by 0.24, 0.59, 2.03 and 2.47 accordingly. Depending on the family relationships probability of high alcohol consumption decreases when relationships are well and increases otherwise. The more study time increases, the more probability of high alcohol consumption decreases.
+The positive *sexM* coefficient means that probability of high alcohol consumption increases by 0.87 when the person is a male. The positive *goout2*, *goout3*, *goout4* and *goout5* coefficients mean that the probability of high alcohol increases based on how often a person goes out by 0.24, 0.59, 2.03 and 2.47 accordingly. Depending on the family relationships probability of high alcohol consumption decreases when relationships are well and increases otherwise. The more study time increases, the more probability of high alcohol consumption decreases.
 It seems that the model confirms my previous hypothesis.
 
 
@@ -216,7 +216,7 @@ loss_func(class = as.numeric(alc_subset$high_use)-1,prob = sample(0:1, nrow(alc_
 
 ```
 
-Logistic regression model has an error of 20% whereas random guessing gives error of 50% which means that logistic regression model is reasonably informative.
+Logistic regression model has an error of 20% whereas random guessing gives error of around 50% which means that logistic regression model is reasonably informative with the lower error than random guessing.
 
 ## Cross-validation
 Let's perform 10 fold cross validation.

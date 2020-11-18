@@ -250,14 +250,14 @@ Let's calculate the Euclidean distances between the variables.
 
 ```{r}
 # Distances between the observations
-dist_eu <- dist(Boston)
+dist_eu <- dist(boston_scaled2)
 ```
 
 Let's run k-means algorithm on the dataset choosing 2 clusters.
 
 ```{r}
 # k-means clustering
-km <-kmeans(Boston, centers = 2)
+km <-kmeans(boston_scaled2, centers = 2)
 
 # Plotting the Boston dataset with clusters
 pairs(Boston, col = km$cluster)
@@ -278,17 +278,30 @@ set.seed(123)
 k_max <- 20
 
 # Calculate the total within sum of squares
-twcss <- sapply(1:k_max, function(k){kmeans(Boston, k)$tot.withinss})
+twcss <- sapply(1:k_max, function(k){kmeans(boston_scaled2, k)$tot.withinss})
 
 # Visualizing the results
 qplot(x = 1:k_max, y = twcss, geom = 'line')
 
 ```
 
-Based on first sharp drop it seems that optimal number of clusters is as chosen initially. That is 2 clusters.
+It is hard to tell what is the optimal number of clusters as the drop is not sharp and reminds the form of exponential function. Maybe it is around 5-6.
+
+Let's run kmeans again with 6 clusters.
 
 
-Let's plot the clusters in the data.
+```{r}
+# k-means clustering
+km <-kmeans(boston_scaled2, centers = 6)
+
+# Plotting the Boston dataset with clusters
+pairs(Boston, col = km$cluster)
+
+
+```
+
+
+Plotting the clusters in the data with *ggpairs*.
 
 
 ```{r}
@@ -300,9 +313,64 @@ ggpairs(Boston, mapping = aes(color = factor(km$cluster)))
 ```
 
 
-From the last plot it is visible that one of the clusters contains most high crime points and the other all the rest points as high crime points were well separated with LDA based on *rad* variable.
+Some clusters seem to be further apart from others. It is hard to draw more conclusions from such plots. 
+
+
+## LDA using the clusters as target classes (bonus)
+
+Performing k-means on the original Boston data with some reasonable number of clusters.
+
+```{r}
+# Scaling the variables
+boston_scaled3 <- scale(Boston)
+
+# Performing kmeans on scaled Boston data
+km <-kmeans(boston_scaled3, centers = 6)
+```
+
+
+```{R}
+# Including clusters into scaled boston dataset
+
+boston_clusters <- data.frame(boston_scaled3, km = km$cluster)
+
+str(boston_clusters)
+
+
+```
+
+```{r}
+# Performing LDA using the clusters as target classes
+
+lda.fit.cluster <- lda(km ~ ., data = boston_clusters)
+
+# The function for lda biplot arrows
+lda.arrows <- function(x, myscale = 1, arrow_heads = 0.1, color = "orange", tex = 0.75, choices = c(1,2)){
+  heads <- coef(x)
+  arrows(x0 = 0, y0 = 0, 
+         x1 = myscale * heads[,choices[1]], 
+         y1 = myscale * heads[,choices[2]], col=color, length = arrow_heads)
+  text(myscale * heads[,choices], labels = row.names(heads), 
+       cex = tex, col=color, pos=3)
+}
+
+# Setting target classes as numeric
+classes <- as.numeric(boston_clusters$km)
+
+# Plotting the lda results
+plot(lda.fit.cluster, dimen = 2, col = classes, pch = classes)
+
+# Plotting arrows arrows representing the relationships of the original variables to the LDA solution
+lda.arrows(lda.fit, myscale = 1)
+
+```
+
+There seem to be two clusters which have longer distance from rest of the clusters. That distanced is influenced by *rad* variable.
+
 
 ## Projection of the data points (super bonus)
+
+
 
 ```{r}
 
@@ -321,11 +389,29 @@ library(plotly)
 plot_ly(x = matrix_product$LD1, y = matrix_product$LD2, z = matrix_product$LD3, type= 'scatter3d', mode='markers', color = train$crime)
 
 
-# Plotting with color argument equal to kmeans clusters of the observations in train set.
+# Plotting with color argument equal to kmeans clusters of the observations in train set of LDA.
+plot_ly(x = matrix_product$LD1, y = matrix_product$LD2, z = matrix_product$LD3, type= 'scatter3d', mode='markers', color = factor(km$cluster[ind]))
+
+```
+
+These two plots are similar as one group of points is further apart from rest of the data points. The difference is that in first plot, the further away group is less mixed and mainly include points of one class.
+
+
+I wonder how similar they would be if 4 cluster centers would be chosen instead of 6.
+
+
+```{r}
+# Scaling the variables
+boston_scaled3 <- scale(Boston)
+
+# Performing kmeans on scaled Boston data
+km <-kmeans(boston_scaled3, centers = 4)
+
+
+# Plotting with color argument equal to kmeans clusters of the observations in train set of LDA.
 plot_ly(x = matrix_product$LD1, y = matrix_product$LD2, z = matrix_product$LD3, type= 'scatter3d', mode='markers', color = factor(km$cluster[ind]))
 
 ```
 
 
-These two plots differ in a way that there are only two clusters in the second plot and 4 different classes in the first plot. The similarly here is that high crime points from the first plot are assigned to the first cluster.
-
+It seems that further cluster still remains less homogenous than in the first plot with crime rate classes.
