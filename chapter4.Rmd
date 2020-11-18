@@ -304,9 +304,9 @@ pairs(Boston, col = km$cluster)
 Plotting the clusters in the data with *ggpairs*.
 
 
-```{r}
+```{r message=FALSE}
 library(GGally)
-
+options(warn = -1)
 ggpairs(Boston, mapping = aes(color = factor(km$cluster)))
 
 
@@ -372,7 +372,7 @@ There seem to be two clusters which have longer distance from rest of the cluste
 
 
 
-```{r}
+```{r message=FALSE}
 
 model_predictors <- dplyr::select(train, -crime)
 # Checking the dimensions
