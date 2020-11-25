@@ -1,8 +1,14 @@
 # Rita Beigaite 17.11.2020 - RStudio exercise #4 for the IODS course
+# Updated on 25.11.2020 - for RStudio exercise #5
 # Meta data sources:
 # http://hdr.undp.org/en/content/human-development-index-hdi
 # http://hdr.undp.org/sites/default/files/hdr2015_technical_notes.pdf
 #--------------------------------------------------------------------
+
+
+
+#PART 1
+#####################################################################
 #####################################################################
 
 # Reading Human development data
@@ -163,3 +169,99 @@ dim(human)
 #[1] 195  19
 
 write.csv(human,file="data/human.csv", row.names = F)
+
+
+###############################################################################
+##############################################################################
+# PART 2
+
+# Loading the human data from the course page as my given column names from part 1
+# differ from names used in task description
+
+human <- read.table('http://s3.amazonaws.com/assets.datacamp.com/production/course_2218/datasets/human1.txt',
+                    sep = ',', header =T)
+
+str(human)
+
+# The data has 195 observations of 19 variables
+str(human)
+
+'data.frame':	195 obs. of  19 variables:
+#$ HDI.Rank      : int  1 2 3 4 5 6 6 8 9 9 ...
+#$ Country       : chr  "Norway" "Australia" "Switzerland" "Denmark" ...
+#$ HDI           : num  0.944 0.935 0.93 0.923 0.922 0.916 0.916 0.915 0.913 0.913 ...
+#$ Life.Exp      : num  81.6 82.4 83 80.2 81.6 80.9 80.9 79.1 82 81.8 ...
+#$ Edu.Exp       : num  17.5 20.2 15.8 18.7 17.9 16.5 18.6 16.5 15.9 19.2 ...
+#$ Edu.Mean      : num  12.6 13 12.8 12.7 11.9 13.1 12.2 12.9 13 12.5 ...
+#$ GNI           : chr  "64,992" "42,261" "56,431" "44,025" ...
+#$ GNI.Minus.Rank: int  5 17 6 11 9 11 16 3 11 23 ...
+#$ GII.Rank      : int  1 2 3 4 5 6 6 8 9 9 ...
+#$ GII           : num  0.067 0.11 0.028 0.048 0.062 0.041 0.113 0.28 0.129 0.157 ...
+#$ Mat.Mor       : int  4 6 6 5 6 7 9 28 11 8 ...
+#$ Ado.Birth     : num  7.8 12.1 1.9 5.1 6.2 3.8 8.2 31 14.5 25.3 ...
+#$ Parli.F       : num  39.6 30.5 28.5 38 36.9 36.9 19.9 19.4 28.2 31.4 ...
+#$ Edu2.F        : num  97.4 94.3 95 95.5 87.7 96.3 80.5 95.1 100 95 ...
+#$ Edu2.M        : num  96.7 94.6 96.6 96.6 90.5 97 78.6 94.8 100 95.3 ...
+#$ Labo.F        : num  61.2 58.8 61.8 58.7 58.5 53.6 53.1 56.3 61.6 62 ...
+#$ Labo.M        : num  68.7 71.8 74.9 66.4 70.6 66.4 68.1 68.9 71 73.8 ...
+#$ Edu2.FM       : num  1.007 0.997 0.983 0.989 0.969 ...
+#$ Labo.FM       : num  0.891 0.819 0.825 0.884 0.829 ...
+
+#Transforming the Gross National Income (GNI) variable to numeric
+
+# Accessing the stringr package
+library(stringr)
+
+# Removing the commas and converting gni variable to numeric 
+human <- mutate(
+  human, GNI = str_replace(GNI, pattern=",", replace ="") 
+  %>% as.numeric)
+
+str(human)
+
+# Keeping only "Country", "Edu2.FM", "Labo.FM", "Edu.Exp", "Life.Exp", "GNI", "Mat.Mor", "Ado.Birth", "Parli.F" variables
+keep <- c("Country", "Edu2.FM", "Labo.FM", "Life.Exp", "Edu.Exp", "GNI", "Mat.Mor", "Ado.Birth", "Parli.F")
+human <- dplyr::select(human, one_of(keep))
+
+# Now dimention of the data has changed
+dim(human)
+#[1] 195   9
+
+# Removing all the rows with NA values
+human <- filter(human, complete.cases(human))
+
+dim(human)
+#[1] 162   9
+
+
+# Removing the observations which relate to regions instead of countries
+# Looking at the names of the countries we see that last 7 observations are
+# regions
+human$Country
+#................
+#[156] "Arab States"                              
+#[157] "East Asia and the Pacific"                
+#[158] "Europe and Central Asia"                  
+#[159] "Latin America and the Caribbean"          
+#[160] "South Asia"                               
+#[161] "Sub-Saharan Africa"                       
+#[162] "World"
+
+
+# Selecting all observations until [156] which is Arab States
+human <- human[1:155, ]
+dim(human)
+#[1] 155   9
+
+#Defining the row names of the data by the country names and removing the country name column from the data
+rownames(human) <- human$Country
+human <- dplyr::select(human, -Country)
+
+dim(human)
+#[1] 155   8
+
+# Saving the human data in data folder
+write.csv(human,file="data/human.csv", row.names = T)
+
+test <- read.table('data/human.csv',sep = ',',header = T, row.names = 1)
+glimpse(test)
