@@ -182,20 +182,106 @@ Ratio of proportion of females in the labour force and proportion of males in th
 
 ## Multiple Correspondence Analysis
 
-In this section the *tea* dataset from the package *Factominer* is used.
+In this section the *tea* dataset from the package *FactoMineR* is used. It contains the answers of a questionnaire on tea consumption.
 
 ```{r}
-library(Factominer)
+# Loading tea dataset
+library(FactoMineR)
+data('tea')
+
+# Looking at the structure of the dataset
+str(tea)
+dim(tea)
+
+# Looking at the summaries of the variables
+summary(tea)
+```
+
+This dataset has 300 observations and 36 variables. As there are many variables, I will selecte only some of them for further analysis.
+
+age_Q, sex, price, sugar, frequency, 
+
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+# Subsetting the dataset
+selected_columns <- c ('age_Q', 'sex', 'price', 'sugar', 'frequency', 'relaxing' )
+tea_selected <- dplyr::select(tea, one_of(selected_columns))
+
+# Visualize the selected dataset
+gather(tea_selected) %>% ggplot(aes(value)) + facet_wrap("key", scales = "free") + geom_bar() + theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8))
+
+
 
 
 ```
 
+It seems that the highest tea consumption is in the age group of 15-24 year. The cheap tea isn't chosen often. More people find tea drinking relaxing and more female than male drinks tea. Tea with no sugar is slightly more preferred.
+
+
+Let's do the multiple correspondence analysis.
+
+```{r}
+# Multiple correspondence analysis
+mca <- MCA(tea_selected, graph = FALSE)
+
+# Summarizing the model
+summary(mca)
+
+# Visualizing the MCA
+plot(mca, invisible=c("ind"), habillage = "quali")
+```
+
+The horizontal dimension explains 10.79% of the variance in the data whereas the vertical dimension explains only 9.73%. Together both dimension explain only around 20% of variance in the data set.
+ 
+The graph in MCA presents the information in a condense form where the distance between variable categories gives a measure of their similarity.
+
+
+Let's look at some possible conclusions and see if they can be drawn from the data as well.
+
+1) Tea with no sugar is more chosen by people from two older age groups.
+
+```{r}
+
+# Initializing a plot of alc_use and going out
+ggplot(tea_selected, 
+       aes(x = age_Q, 
+           fill = sugar )) + 
+  geom_bar(position = position_dodge(preserve = "single")) +labs(
+   title = 'Sugar preference in different age group') + theme_minimal()
+```
+Yes, from the barplot we can see, that more peaople in youger age groups prefer tea with sugar and more people in older groups, prefer the tea without sugar.
+
+
+2) Female are more likely to drink tea twice a day.
 
 
 
+```{r}
+# Initializing a plot of alc_use and going out
+ggplot(tea_selected, 
+       aes(x = sex, 
+           fill = frequency )) + 
+  geom_bar(position = position_dodge(preserve = "single")) +labs(
+   title = 'Tea drinking frequencies famale vs male') + theme_minimal()
+```
+
+Seems that this conclusion is visible in the data as well.
 
 
 
+3) Sugar is chosen by people who drink tea least often (1 to 2 times per week).
 
+```{r}
+# Initializing a plot of alc_use and going out
+ggplot(tea_selected, 
+       aes(x = frequency, 
+           fill = sugar )) + 
+  geom_bar(position = position_dodge(preserve = "single")) +labs(
+   title = 'Sugar preference in different age group') + theme_minimal()
+```
 
+It seems that this conclusion can be drawn from the data as well.
 
