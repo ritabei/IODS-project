@@ -1,0 +1,201 @@
+# Dimensionality reduction techniques
+
+
+```{r}
+date()
+```
+
+## Data
+
+In this chapter the *human* dataset, which originates from the [United Nations Development Programme](http://hdr.undp.org/en/content/human-development-index-hdi), is analyzed. 
+The code of data preparation along with the data is in my [Github repository](https://github.com/ritabei/IODS-project/blob/master/data/create_human.R).
+
+
+Let's load and explore the data.
+
+```{r}
+# Loading the data
+human <- read.table('data/human.csv',sep = ',',header = T, row.names = 1)
+
+# Looking at the structure of the dataset
+str(human)
+dim (human)
+names(human)
+```
+
+The data set consists of 155 observations and 8 variables. Each observation has a name which indicates a country. The variables are:
+
+*Edu2.FM*: ratio of proportion of females with at least secondary education and proportion of males with at least secondary education.
+
+*Labo2.FM*: ratio of proportion of females in the labour force and proportion of males in the labour force.
+
+*Life.Exp*: life expectancy at birth.
+
+*Edu.Exp*: expected years of schooling.
+
+*GNI*: gross National Income per capita.
+
+*Mat.Mor*: maternal mortality ratio.
+
+*Ado.Birth*: adolescent birth rate.
+
+*Parli.F*: percetange of female representatives in parliament.
+
+
+```{r}
+# Looking at the summary of the variables
+summary(human)
+```
+All of the variables have different scales. The features, especially, *GNI*, *Mat.Mor*, *Ado.Birth* exhibit high variability.
+
+
+Let's look at the pairwise relationships between the variables.
+```{r}
+# Plotting a matrix of the variables
+pairs(human)
+
+```
+```{r}
+library(corrplot)
+library(dplyr)
+# Computing the correlation matrix
+cor(human) %>% corrplot(type = "upper", tl.cex=0.7)
+
+```
+
+
+Many variables seem to be correlated. For example, when *Life.Exp* (life expectancy at birth) increases, *Edu.Exp* (expected years of schooling) and *GNI* increase as well. With increasing *Life.Exp*, *Mat.Mor* (maternal mortality ratio) and *Ado.Birth* decreases (adolescent birth rate).
+
+
+Let's look at the distribution of the variables.
+
+```{r, fig.height = 4, fig.width = 4 }
+library(ggplot2)
+# Ploting a histogram of life expectancy at birth variable
+ggplot(human, aes(x=Life.Exp)) +theme_minimal() + geom_histogram(color="darkblue", fill="lightblue", binwidth=5) + ggtitle("Life expectancy at birth")
+```
+
+
+```{r, fig.height = 4, fig.width = 4 }
+library(ggplot2)
+# Ploting a histogram of life expectancy at birth variable
+ggplot(human, aes(x=Edu.Exp)) +theme_minimal() + geom_histogram(color="darkblue", fill="lightblue", binwidth=1) + ggtitle("Expected years of schooling")+ stat_function(fun = function(x) dnorm(x, mean = mean(human$Edu.Exp), sd = sd(human$Edu.Exp)) * 1 * nrow(human))
+```
+
+```{r, fig.height = 4, fig.width = 4 }
+library(ggplot2)
+# Ploting a histogram of Mat.Mor variable
+ggplot(human, aes(x=Mat.Mor)) +theme_minimal() + geom_histogram(color="darkblue", fill="lightblue", binwidth=50) + ggtitle("Maternal mortality ratio")
+```
+
+```{r, fig.height = 4, fig.width = 4 }
+library(ggplot2)
+# Ploting a histogram of Ado.Birth variable
+ggplot(human, aes(x=Ado.Birth)) +theme_minimal() + geom_histogram(color="darkblue", fill="lightblue", binwidth=10) + ggtitle("Adolescent birth ratio")
+```
+
+
+```{r, fig.height = 4, fig.width = 5 }
+library(ggplot2)
+# Ploting a histogram of Parli.F variable
+ggplot(human, aes(x=Parli.F)) +theme_minimal() + geom_histogram(color="darkblue", fill="lightblue", binwidth=5) + ggtitle("Percetange of female representatives in parliament")
+```
+
+Out of all distributions, only expected years of schooling resembles a normal distribution. Maternal mortality ratio is mostly quite low. However, there are very high ratio exceptions. Life expectancy has most counts between 70 and 80 years. In very few cases females take up more than 50% of parliament places.
+
+
+## Principal Component Analysis (PCA)
+
+In this section PCA is applied on non-standartized and standartized and results are compared at the end of the section.
+
+### Non-standartized data
+
+
+```{r message=FALSE}
+options(warn = -1)
+# Performing PCA (with the SVD method)
+pca_human_ns <- prcomp(human)
+
+# Creating and printing out a summary of pca_human
+s <- summary(pca_human_ns)
+s
+
+# Rounded percentages of variance captured by each PC
+pca_pr <- round(100*s$importance[2,], digits = 1) 
+
+# Printing out the percentages of variance
+pca_pr
+
+# Creating an object pc_lab to be used as axis labels
+pc_lab <- paste0(names(pca_pr), " (", pca_pr, "%)")
+
+# Drawing a biplot
+biplot(pca_human_ns, cex = c(0.8, 1), col = c("grey40", "deeppink2"), xlab = pc_lab[1], ylab = pc_lab[2], sub = 'Gross National Income per capita (GNI) has the highest variability out of all features and it highly contributes to PC1 component.', cex.sub = 0.7)
+
+
+
+
+
+
+
+```
+
+### Standartized data
+
+```{r message=FALSE}
+options(warn = -1)
+# Standardizing the variables
+human_std <- scale(human)
+
+
+# Performing PCA (with the SVD method)
+pca_human <- prcomp(human_std)
+
+
+# Creating and printing out a summary of pca_human
+s <- summary(pca_human)
+s
+
+# Rounded percentages of variance captured by each PC
+pca_pr <- round(100*s$importance[2,], digits = 1) 
+
+# Printing out the percentages of variance
+pca_pr
+
+# Creating an object pc_lab to be used as axis labels
+pc_lab <- paste0(names(pca_pr), " (", pca_pr, "%)")
+
+# Drawing a biplot
+biplot(pca_human, cex = c(0.8, 1), col = c("grey40", "deeppink2"), xlab = pc_lab[1], ylab = pc_lab[2],sub= 'Standartized variables more equally contribute to the principal components.', cex.sub=0.7)
+
+
+```
+
+Standardization of the data set makes a very big difference. Without standardizing, very high variability in *GNI* highly contributes to the first principal component and thus, all variability in the data is explained only with PC1.
+When data is standardized, all variables contribute more equally to the components and the first principal component explains over 50% of variability in the data.
+
+The angles between features in the biplot of standardized data are small. They represent high correlation between those features.
+
+Ratio of proportion of females in the labour force and proportion of males in the labour force as well as percetange of female representatives in parliament are the only two variables which contribute to the second principal component. These two variables help to explain less variance in the data compared to education, life expectancy, maternal mortality and adolescent birth ratio variables.
+
+
+
+## Multiple Correspondence Analysis
+
+In this section the *tea* dataset from the package *Factominer* is used.
+
+```{r}
+library(Factominer)
+
+
+```
+
+
+
+
+
+
+
+
+
+
