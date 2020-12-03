@@ -4,3 +4,209 @@
 ```{r}
 date()
 ```
+
+
+```{r}
+# Loading packages
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+```
+
+
+## Part 1. RATS data
+
+
+```{r}
+# Reading the data set
+RATSL <- read.csv('data/RATSL.csv')
+
+# Looking at the structure of the data set
+str(RATSL)
+
+# Converting variables as factors
+RATSL$ID <- factor(RATSL$ID)
+RATSL$Group <-factor(RATSL$Group)
+RATSL$WD <-factor(RATSL$WD)
+
+str(RATSL)
+```
+Let's look at the plots of the data.
+
+```{r}
+# Draw the plot:
+ggplot(RATSL, aes(x = Time, y = Weight, linetype = ID)) +
+  geom_line() +
+  scale_linetype_manual(values = rep(1:10, times=4)) +
+  facet_grid(. ~ Group, labeller = label_both) +
+  theme(legend.position = "none") + 
+  scale_y_continuous(limits = c(min(RATSL$Weight), max(RATSL$Weight)))
+```
+We can see that group 1 has the smallest average weight. Group two and group three have a similar weight. There's clearly visible outlier in the second group which has much hiher weight then the rest of the rats in that group. In time the weight of the rats grows.
+
+
+
+
+```{r}
+# Standartizing rats weight
+RATSL <- RATSL %>% group_by(Time) %>%
+  mutate(stdweight = (Weight - mean(Weight))/sd(Weight) ) %>% ungroup()
+
+# Looking at the standartized data
+glimpse(RATSL)
+
+# Plotting again 
+
+ggplot(RATSL, aes(x = Time, y = stdweight, linetype = ID)) +
+  geom_line() +
+  scale_linetype_manual(values = rep(1:10, times=4)) +
+  facet_grid(. ~ Group, labeller = label_both) +
+  scale_y_continuous(name = "standardized weight")
+
+```
+
+After standardazing the weight, the growing trend is not anymore so visible in the data.
+
+
+
+```{r}
+# Setting the number of times
+n <- RATSL$Time %>% unique() %>% length()
+
+# Summarizing the data with mean and standard error
+RATSS <- RATSL %>%
+  group_by(Group, Time) %>%
+  summarise( mean = mean(Weight), se = sd(Weight)/sqrt(n) ) %>%
+  ungroup()
+
+# Looking at the data:
+glimpse(RATSS)
+
+
+
+# Plotting the mean profiles:
+ggplot(RATSS, aes(x = Time, y = mean, linetype = Group, shape = Group)) +
+  geom_line() +
+  scale_linetype_manual(values = c(1,2,3)) +
+  geom_point(size=3) +
+  scale_shape_manual(values = c(1,2,3)) +
+  geom_errorbar(aes(ymin=mean-se, ymax=mean+se, linetype="1"), width=0.3) +
+  theme(legend.position = c(0.9,0.3)) +
+  scale_y_continuous(name = "mean(Weight) +/- se(Weight)")
+```
+
+
+
+```{r}
+# Creating summary data
+RATSL_2 <- RATSL %>%
+  filter(Time > 1) %>%
+  group_by(Group, ID) %>%
+  summarise( mean=mean(Weight) ) %>%
+  ungroup()
+
+# Looking at the data
+glimpse(RATSL_2)
+
+```
+```{r}
+# Drawing boxplots
+ggplot(RATSL_2, aes(x = Group, y = mean)) +
+  geom_boxplot() +
+  stat_summary(fun = "mean", geom = "point", shape=23, size=4, fill = "blue") +
+  scale_y_continuous(name = "mean(Weight)")
+```
+
+We see the outliers of each group in the plot.There are three outliers. For the first and third group they are the smallest values and for the second group - the biggest value.
+
+
+```{r}
+RATSL_2 %>%
+  group_by(Group) %>%
+  summarize(max(mean))
+```
+
+
+```{r}
+RATSL_2 %>%
+  group_by(Group) %>%
+  summarize(min(mean))
+```
+
+So for the first group the outlier value is 238.9, for the third group: 495.2 and for the second group: 594.
+
+```{r}
+# Creating a new data by filtering the outliers
+RATSL_3 <- RATSL_2 %>%
+  filter(mean !=238.9 & mean != 495.2 & mean != 594)
+```
+
+
+```{r}
+# Drawing a boxplot
+ggplot(RATSL_3, aes(x = Group, y = mean)) +
+  geom_boxplot() +
+  stat_summary(fun = "mean", geom = "point", shape=23, size=4, fill = "blue") +
+  scale_y_continuous(name = "mean(Weight)")
+```
+
+Now the data is without outliers.
+
+Let's perform a t-test to see if group 1 and group 2 differs.
+
+```{r}
+
+# Filtering data to have group 1 and group 2
+RATSL_2groups <- filter(RATSL_3,(Group==1 | Group==2))
+
+# Performing a two-sample t-test
+t.test(mean ~ Group, data = RATSL_2groups, var.equal = TRUE)
+
+
+```
+
+Based on the result of the t-test, we see that at 95% confidence level, there is a significant difference between two means. As the p value is lower that 0.05 the null hypothesis (that the means are equal) is rejected.
+
+
+```{r}
+# Adding the baseline from the original data as a new variable to the summary data
+
+RATS <- read.csv('data/RATS.csv')
+
+RATSL_4 <- RATSL_2 %>%
+  mutate(baseline = RATS$WD1)
+
+# Fitting the linear model
+fit <- lm(mean ~ baseline + Group, data = RATSL_4)
+
+# Computing the analysis of variance table for the fitted model with anova()
+anova(fit)
+
+```
+
+
+
+## Part 2. BPRS data
+
+
+
+```{r}
+# Reading the data set
+BPRSL <- read.csv('data/BPRSL.csv')
+
+# Looking at the structure of the data set
+str(BPRSL)
+
+# Converting variables as factors
+BPRSL$treatment <- factor(BPRSL$treatment)
+BPRSL$subject <- factor(BPRSL$subject)
+
+
+```
+
+
+
+
+
+
+
