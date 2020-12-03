@@ -42,7 +42,8 @@ ggplot(RATSL, aes(x = Time, y = Weight, linetype = ID)) +
   theme(legend.position = "none") + 
   scale_y_continuous(limits = c(min(RATSL$Weight), max(RATSL$Weight)))
 ```
-We can see that group 1 has the smallest average weight. Group two and group three have a similar weight. There's clearly visible outlier in the second group which has much hiher weight then the rest of the rats in that group. In time the weight of the rats grows.
+
+We can see that group 1 has the smallest average weight. Group two and group three have a similar weight. There's clearly visible outlier in the second group which has much higher weight then the rest of the rats in that group. In time the weight of the rats grows.
 
 
 
