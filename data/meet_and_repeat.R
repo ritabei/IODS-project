@@ -128,6 +128,12 @@ glimpse(RATS)
 #$ #WD64  <int> 278, 245, 269, 275, 280, 281, 284, 278, 478, 496, 472, 628, 525, 559...
 
 
+# A wide dataset has one record for each subject. 
+# All observations which were measured at different time are recorded in 
+# different columns. While in the long format, each subject has multiple records.
+
+
+
 
 # Writing the data
 
