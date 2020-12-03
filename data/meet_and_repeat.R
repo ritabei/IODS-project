@@ -137,11 +137,11 @@ glimpse(RATS)
 
 # Writing the data
 
-write.csv(BPRSL, file = "data/BPRSL.csv")
-write.csv(RATSL, file = "data/RATSL.csv")
+write.csv(BPRSL, file = "data/BPRSL.csv",row.names = F)
+write.csv(RATSL, file = "data/RATSL.csv",row.names = F)
 
-write.csv(BPRS, file = "data/BPRS.csv")
-write.csv(RATS, file = "data/RATS.csv")
+write.csv(BPRS, file = "data/BPRS.csv",row.names = F)
+write.csv(RATS, file = "data/RATS.csv",row.names = F)
 
 
 
