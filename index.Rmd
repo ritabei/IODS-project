@@ -1,6 +1,6 @@
 ---
 title: "IODS course project"
-author: "Rita Beigaite"
+author: "Rita"
 output:
   html_document:
     theme: cerulean
